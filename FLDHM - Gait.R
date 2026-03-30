@@ -60,10 +60,34 @@ ankle.fd = Metrics.fd$Ankle
 dankle.fd = deriv.fd(ankle.fd, 1)
 d2ankle.fd = deriv.fd(ankle.fd, 2)
 
-par(mfrow = c(1,3))
-plot(hip.fd, main = "Hip")
-plot(knee.fd, main = "Knee")
-plot(ankle.fd, main = "Ankle")
+# plot the data
+
+tfine = seq(0,1, 0.01)
+
+n = ncol(Metrics[[1]])
+
+plot.data = do.call(rbind, lapply(1:3, function(X){
+  
+  Xev = data.frame(melt(eval.fd(tfine, Metrics.fd[[X]])))
+  Xev$X1 = rep(tfine*100, n)
+  Xev$variable = rep(names(Metrics.fd)[X], nrow(Xev))
+  colnames(Xev) = c("t", "id", "value", "variable")
+  
+  return(Xev)
+  
+}))
+
+
+data.plot = ggplot(plot.data, aes(x = t, y = value, colour = factor(id)))+
+  geom_line(alpha = 0.2)+
+  theme_light()+
+  #scale_colour_manual(values = viridis::mako(n))+
+  labs(x = "% Gait Cycle", y = "Degrees Flexion")+
+  theme(legend.position = 'none')+
+  facet_wrap(~variable, scales = 'free')
+
+
+#ggsave("FLDHM Figure 1 - Data.jpg", data.plot, dpi = 300, height = 10, width = 18, units = 'cm')
 
 
 # center data
@@ -83,8 +107,6 @@ d2ankle.fd.c = center.fd(d2ankle.fd)
 
 
 # set up data frames for modelling
-tfine = seq(0,1, 0.01)
-n = ncol(Metrics$Hip)
 
 set.seed(1)
 Session = sample(1:5, n, T)
@@ -437,7 +459,7 @@ R.eigmat = apply(eigmat, 2, Re)
 real.plot = melt(R.eigmat)
 
 TVES = ggplot(real.plot, aes(x = X1, y = value, colour = as.factor(X2)))+
-  geom_line()+
+  geom_line(colour = "black")+
   geom_hline(yintercept = 0, lty = 2)+
   labs(x = " ", y  ="Eigen Value \n (Real Part)")+
   theme_light()+
@@ -448,27 +470,27 @@ TVES
 # look at eigen vectors
 
 evec1 = Re(eigvecs[,,1])
-colnames(evec1) =  c("H", "dH", "K", "dK", "A", "dA")
+colnames(evec1) =  c("Hip", "dHip", "Knee", "dKnee", "Ankle", "dAnkle")
 evc1.plot = melt(evec1)
 
 evec2 = Re(eigvecs[,,2])
-colnames(evec2) =  c("H", "dH", "K", "dK", "A", "dA")
+colnames(evec2) =  c("Hip", "dHip", "Knee", "dKnee", "Ankle", "dAnkle")
 evc2.plot = melt(evec2)
 
 evec3 = Re(eigvecs[,,3])
-colnames(evec3) =  c("H", "dH", "K", "dK", "A", "dA")
+colnames(evec3) =  c("Hip", "dHip", "Knee", "dKnee", "Ankle", "dAnkle")
 evc3.plot = melt(evec3)
 
 evec4 = Re(eigvecs[,,4])
-colnames(evec4) =  c("H", "dH", "K", "dK", "A", "dA")
+colnames(evec4) =  c("Hip", "dHip", "Knee", "dKnee", "Ankle", "dAnkle")
 evc4.plot = melt(evec4)
 
 evec5 = Re(eigvecs[,,5])
-colnames(evec5) =  c("H", "dH", "K", "dK", "A", "dA")
+colnames(evec5) =  c("Hip", "dHip", "Knee", "dKnee", "Ankle", "dAnkle")
 evc5.plot = melt(evec5)
 
 evec6 = Re(eigvecs[,,6])
-colnames(evec6) =  c("H", "dH", "K", "dK", "A", "dA")
+colnames(evec6) =  c("Hip", "dHip", "Knee", "dKnee", "Ankle", "dAnkle")
 evc6.plot = melt(evec6)
 
 
@@ -512,7 +534,7 @@ layout = "AAA
 
 EIGVALVEC = wrap_plots(TVES, TVCS, guide_area())+ plot_layout(design = layout)
 EIGVALVEC
-#ggsave("FLDHM Figure 5.3 Sensitivity.jpg", EIGVALVEC, dpi = 300, height = 16, width = 20, units = 'cm')
+#ggsave("FLDHM Figure 4 - Gait Eigens.jpg", EIGVALVEC, dpi = 300, height = 16, width = 20, units = 'cm')
 
 
 
