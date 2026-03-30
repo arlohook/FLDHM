@@ -259,17 +259,32 @@ stopCluster(cl)
 
 
 
-# update se
+# update se to account for smooth error
 
 ankle.co[[1]]$seb = apply(boot.mats$int, 1, sd)
 ankle.co[[2]]$seb = apply(boot.mats$beta_A, 1, sd)
 ankle.co[[3]]$seb = apply(boot.mats$beta_dA, 1, sd)
 
+# compute scaling factors fro simultaneous coverage
+
+scale.facs = sapply(1:length(ankle.co), function(i){
+  
+  
+  boot.facs = apply(boot.mats[[i]], 2, function(j){
+    
+    max(max(abs(j - ankle.co[[i]]$value)/ankle.co[[i]]$seb))
+    
+  })
+  
+  return(quantile(boot.facs, 0.95))
+  
+})
+
 
 # plot coefficients
 
 Stiff = ggplot(ankle.co[[2]], aes(x = tfine.vec*100, y = value, 
-                                 ymin = value-2*seb, ymax = value+2*seb))+
+                                 ymin = value-scale.facs[2]*seb, ymax = value+scale.facs[2]*seb))+
   geom_ribbon(alpha = 0.4, fill = "orange")+
   geom_line()+
   labs(x = "% Gait Cycle", y = "Coefficient Value", title = "A")+
@@ -278,7 +293,7 @@ Stiff = ggplot(ankle.co[[2]], aes(x = tfine.vec*100, y = value,
   theme(text = element_text(size = 14))
 
 Damp = ggplot(ankle.co[[3]], aes(x = tfine.vec*100, y = value, 
-                                ymin = value-2*seb, ymax = value+2*seb))+
+                                ymin = value-scale.facs[3]*seb, ymax = value+scale.facs[3]*seb))+
   geom_ribbon(alpha = 0.4, fill = "blue")+
   geom_line()+
   labs(x = "% Gait Cycle", y = " ", title = "B")+
@@ -290,7 +305,7 @@ Damp = ggplot(ankle.co[[3]], aes(x = tfine.vec*100, y = value,
 COEFPLOT = Stiff + Damp
 COEFPLOT
 
-#ggsave("FLDHM Figure 3.2.Ankle.jpg", COEFPLOT, dpi = 300, height = 10, width = 18, units = 'cm')
+#ggsave("FLDHM Figure 2 - Ankle Coefs.jpg", COEFPLOT, dpi = 300, height = 10, width = 18, units = 'cm')
 
 
 
@@ -408,7 +423,7 @@ R.eigmat = apply(eigmat, 2, Re)
 real.plot = melt(R.eigmat)
 
 TVES = ggplot(real.plot, aes(x = X1, y = value, colour = as.factor(X2)))+
-  geom_line()+
+  geom_line(colour = "black")+
   geom_hline(yintercept = 0, lty = 2)+
   labs(x = " ", y  ="Eigen Value \n (Real Part)")+
   theme_light()+
@@ -420,11 +435,11 @@ TVES
 # look at eigen vectors
 
 evec1 = Re(eigvecs[,,1])
-colnames(evec1) =  c("A", "dA")
+colnames(evec1) =  c("Ankle", "dAnkle")
 evc1.plot = melt(evec1)
 
 evec2 = Re(eigvecs[,,2])
-colnames(evec2) =  c("A", "dA")
+colnames(evec2) =  c("Ankle", "dAnkle")
 evc2.plot = melt(evec2)
 
 
@@ -463,7 +478,7 @@ layout = "AAA
 
 EIGVALVEC = wrap_plots(TVES, TVCS, guide_area())+ plot_layout(design = layout)
 EIGVALVEC
-#ggsave("FLDHM Figure 5.3 - Ankle Sensitivity.jpg", EIGVALVEC, dpi = 300, height = 16, width = 15, units = 'cm')
+#ggsave("FLDHM Figure 3 - Ankle Eigen.jpg", EIGVALVEC, dpi = 300, height = 16, width = 15, units = 'cm')
 
 
 
