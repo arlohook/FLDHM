@@ -210,8 +210,8 @@ boot.fun = function(i){
   pda.data = pffr.data.a[boot.ind[,i],]
   
   fit = pffr(d2A ~ A + dA, data = pda.data, yind = tfine, 
-             bs.yindex = list(k = 101, m = c(3,2), bs = 'cc', sp = 1e8),
-             bs.int = list(k = 101, m = c(3,2), bs = 'cc', sp = 1e8))
+             bs.yindex = list(k = 60, m = c(3,2), bs = 'cc', sp = lam),
+             bs.int = list(k = 60, m = c(3,2), bs = 'cc', sp = lam))
   
   coefs = extract.coefs(fit)
   
@@ -427,37 +427,41 @@ TVES = ggplot(real.plot, aes(x = X1, y = value, colour = as.factor(X2)))+
   geom_hline(yintercept = 0, lty = 2)+
   labs(x = " ", y  ="Eigen Value \n (Real Part)")+
   theme_light()+
-  facet_wrap( ~as.factor(X2),ncol = 6, scales = 'free')+
+  facet_wrap( ~as.factor(X2),ncol = 2, scales = 'free')+
   theme(legend.position = 'none',
         text = element_text(size = 16))
 TVES
 
-# look at eigen vectors
+# look at eigen vectors with scaling 
 
-evec1 = Re(eigvecs[,,1])
-colnames(evec1) =  c("Ankle", "dAnkle")
-evc1.plot = melt(evec1)
+SD = lapply(list(eval.fd(tfine, ankle.fd), eval.fd(tfine, dankle.fd)), function(X){apply(X,1,sd)})
+SD = do.call(cbind, SD)
 
-evec2 = Re(eigvecs[,,2])
-colnames(evec2) =  c("Ankle", "dAnkle")
-evc2.plot = melt(evec2)
+eigvecs = lapply(1:2, function(i){eigvecs[,,i]/SD})
+EVPLOT = lapply(eigvecs, function(X){
+  
+  colnames(X) = c("Ankle", "dAnkle")
+  melt(X)
+  
+  
+})
+
+EVPLOT = do.call(rbind, EVPLOT)
 
 
-
-EVPLOT = data.frame(rbind(evc1.plot, evc2.plot))
 EVPLOT$Eigenvector = as.factor(c(rep(1:2, each = 202)))
 
 
 my_palette <- c(
-  "#0072B2", # Blue
-  "#D55E00")  # Orange
+  "forestgreen", 
+  "orange")  
 
 
-TVCS = ggplot(EVPLOT, aes(x = X1, y = abs(value), colour = X2))+
+TVCS = ggplot(EVPLOT, aes(x = X1/100, y = abs(value), colour = X2))+
   geom_line()+
-  labs(x = "% Gait Cycle", y = "Eigen Vector \n (Real Part)", colour = "Variable")+
+  labs(x = "Proportion of Gait Cycle", y = "Eigenvector", colour = "Variable")+
   theme_light()+
-  facet_wrap(~Eigenvector, ncol = 6)+
+  facet_wrap(~Eigenvector, ncol = 2)+
   scale_colour_manual(values = my_palette)+
   theme(legend.position = 'bottom', text = element_text(size = 16))
 
@@ -478,10 +482,6 @@ layout = "AAA
 
 EIGVALVEC = wrap_plots(TVES, TVCS, guide_area())+ plot_layout(design = layout)
 EIGVALVEC
-#ggsave("FLDHM Figure 3 - Ankle Eigen.jpg", EIGVALVEC, dpi = 300, height = 16, width = 15, units = 'cm')
-
-
-
-
+ggsave("FLDHM Figure 3 - Ankle Eigens.jpg", EIGVALVEC, dpi = 300, height = 16, width = 15, units = 'cm')
 
 
