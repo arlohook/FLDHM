@@ -42,11 +42,9 @@ smooth.gcv = function(X){
   
 }
 
-# create functional data
 Metrics.fd = lapply(Metrics, function(X){smooth.gcv(X)})
 
 
-# estimate derivatives
 hip.fd = Metrics.fd$Hip
 dhip.fd = deriv.fd(hip.fd, 1)
 d2hip.fd = deriv.fd(hip.fd, 2)
@@ -77,18 +75,43 @@ plot.data = do.call(rbind, lapply(1:3, function(X){
   
 }))
 
+plot.data2 = do.call(rbind, lapply(1:3, function(X){
+  
+  Xev = data.frame(melt(eval.fd(tfine, Metrics.fd[[X]], Lfdobj = 1)))
+  Xev$X1 = rep(tfine*100, n)
+  Xev$variable = rep(names(Metrics.fd)[X], nrow(Xev))
+  colnames(Xev) = c("t", "id", "value", "variable")
+  
+  return(Xev)
+  
+}))
 
-data.plot = ggplot(plot.data, aes(x = t, y = value, colour = factor(id)))+
-  geom_line(alpha = 0.2)+
+
+colours = sample(viridis::turbo(n), n)
+
+data.plot = ggplot(plot.data, aes(x = t/100, y = value, colour = factor(id)))+
+  geom_line(alpha = 0.8)+
   theme_light()+
-  #scale_colour_manual(values = viridis::mako(n))+
-  labs(x = "% Gait Cycle", y = "Degrees Flexion")+
+  scale_colour_manual(values = colours)+
+  labs(x = "", y = "Degrees Flexion")+
   theme(legend.position = 'none')+
   facet_wrap(~variable, scales = 'free')
 
+data.plot2 = ggplot(plot.data2, aes(x = t/100, y = value, colour = factor(id)))+
+  geom_line(alpha = 0.8)+
+  theme_light()+
+  scale_colour_manual(values = colours)+
+  labs(x = "Proportion of Gait Cycle", y = "Flexion Velocity")+
+  theme(legend.position = 'none')+
+  facet_wrap(~variable, scales = 'free')
 
-#ggsave("FLDHM Figure 1 - Data.jpg", data.plot, dpi = 300, height = 10, width = 18, units = 'cm')
+data.plot
+data.plot2
 
+FIGURE1 = data.plot + data.plot2 + plot_layout(design = c("A
+                                                 B"))
+
+#ggsave("FLDHM Figure 1 - Data.jpg", FIGURE1, dpi = 300, height = 10, width = 18, units = 'cm')
 
 # center data
 
@@ -309,6 +332,87 @@ hip.co = extract.coefs(hip.pda)
 knee.co = extract.coefs(knee.pda)
 ankle.co = extract.coefs(ankle.pda)
 
+# plot coefficients
+var.conv = function(vn){
+  
+  case_when(vn == "H" ~ "Hip",
+            vn == "dH" ~ "dHip",
+            vn == "K" ~ "Knee",
+            vn == "dK" ~ "dKnee",
+            vn == "A" ~ "Ankle",
+            vn == "dA" ~ "dAnkle")
+  
+}
+
+hip.plot = lapply(hip.co[2:length(hip.co)], function(X){
+  
+  data.frame("Var" = var.conv(colnames(X)[2]), "t" = X$tfine.vec, "Value" = X$value)
+  
+})
+hip.plot = do.call(rbind, hip.plot)
+hip.plot$Var = factor(hip.plot$Var, levels = c("Hip", "Knee", "dHip", "dKnee"), ordered = T)
+
+knee.plot = lapply(knee.co[2:length(knee.co)], function(X){
+  
+  data.frame("Var" = var.conv(colnames(X)[2]), "t" = X$tfine.vec, "Value" = X$value)
+  
+})
+knee.plot = do.call(rbind, knee.plot)
+knee.plot$Var = factor(knee.plot$Var, levels = c("Hip",  "Knee",  "Ankle", "dHip", "dKnee", "dAnkle"), ordered = T)
+
+
+ankle.plot = lapply(ankle.co[2:length(ankle.co)], function(X){
+  
+  data.frame("Var" = var.conv(colnames(X)[2]), "t" = X$tfine.vec, "Value" = X$value)
+  
+})
+ankle.plot = do.call(rbind, ankle.plot)
+ankle.plot$Var = factor(ankle.plot$Var, levels = c("Knee",  "Ankle", "dKnee", "dAnkle"), ordered = T)
+
+my_palette1 <- c(
+  "Hip" = "#0072B2", # Blue
+  "dHip" = "#D55E00", # Vermillion
+  "Knee" = "#F0E442", # Yellow
+  "dKnee" = "#009E73", # Green
+  "Ankle" = "#CC79A7", # Reddish purple
+  "dAnkle" = "#E69F00")
+
+Hp = ggplot(hip.plot, aes(x = t, y = Value, colour = Var))+
+  geom_hline(yintercept = 0, lty = 2, colour = "grey", alpha = 0.5,)+
+  geom_line()+
+  theme_classic()+
+  facet_wrap(~Var, scales = 'free')+
+  labs(x = "Proportion of Gait Cycle", title = "Multi-Joint Coefficients: Hip", colour = "Variable")+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 10), legend.position = 'none')+
+  scale_colour_manual(values = my_palette1)+
+  scale_x_continuous(breaks = c(0,1))
+  
+
+Kp = ggplot(knee.plot, aes(x = t, y = Value, colour = Var))+
+  geom_hline(yintercept = 0, lty = 2, colour = "grey", alpha = 0.5)+
+  geom_line()+
+  theme_classic()+
+  facet_wrap(~Var, scales = 'free')+
+  labs(x = "Proportion of Gait Cycle", title = "Multi-Joint Coefficients: Knee", colour = "Variable")+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 10), legend.position = 'none')+
+  scale_colour_manual(values = my_palette1)+
+  scale_x_continuous(breaks = c(0,1))
+
+Ap = ggplot(ankle.plot, aes(x = t, y = Value, colour = Var))+
+  geom_hline(yintercept = 0, lty = 2, colour = "grey", alpha = 0.5)+
+  geom_line()+
+  theme_classic()+
+  facet_wrap(~Var, scales = 'free')+
+  labs(x = "Proportion of Gait Cycle", title = "Multi-Joint Coefficients: Ankle", colour = "Variable")+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 10), legend.position = 'none')+
+  scale_colour_manual(values = my_palette1)+
+  scale_x_continuous(breaks = c(0,1))
+
+
+MJCO = Hp + Kp + Ap + plot_layout(design = c("AABBBCC"))
+MJCO
+ggsave("FLDHM Figure 5 - Multi Joint Betas.jpg", MJCO, dpi = 300, units = 'cm', height = 14, width = 25)
+
 
 # make coeficients into functions
 hfun = lapply(hip.co, function(X){splinefun(x = X$tfine.vec, y = X$value)})
@@ -428,7 +532,6 @@ matplot(eval.fd(time, ankle.fd)-a.hat, type = 'l', main = "Ankle Residuals")
 
 
 
-
 # look at eigen values
 
 eigmat = matrix(NA, nrow = 101, ncol = 6)
@@ -453,15 +556,15 @@ for(i in 1:101){
   
 }
 
-# take the real component for plotting
+
 R.eigmat = apply(eigmat, 2, Re) 
 
 real.plot = melt(R.eigmat)
 
-TVES = ggplot(real.plot, aes(x = X1, y = value, colour = as.factor(X2)))+
+TVES = ggplot(real.plot, aes(x = X1/100, y = value, colour = as.factor(X2)))+
   geom_line(colour = "black")+
   geom_hline(yintercept = 0, lty = 2)+
-  labs(x = " ", y  ="Eigen Value \n (Real Part)")+
+  labs(x = " ", y  ="Eigenvalue")+
   theme_light()+
   facet_wrap( ~as.factor(X2),ncol = 6)+
   theme(legend.position = 'none', text = element_text(size = 14), axis.text.x = element_text(size = 10))
@@ -469,32 +572,28 @@ TVES
 
 # look at eigen vectors
 
-evec1 = Re(eigvecs[,,1])
-colnames(evec1) =  c("Hip", "dHip", "Knee", "dKnee", "Ankle", "dAnkle")
-evc1.plot = melt(evec1)
+# scale by sd of respective vars
 
-evec2 = Re(eigvecs[,,2])
-colnames(evec2) =  c("Hip", "dHip", "Knee", "dKnee", "Ankle", "dAnkle")
-evc2.plot = melt(evec2)
+SD = lapply(list(eval.fd(tfine, hip.fd),
+          eval.fd(tfine, dhip.fd),
+          eval.fd(tfine, knee.fd),
+          eval.fd(tfine, dknee.fd),
+          eval.fd(tfine, ankle.fd),
+          eval.fd(tfine, dankle.fd)), function(X){apply(X, 1, sd)})
 
-evec3 = Re(eigvecs[,,3])
-colnames(evec3) =  c("Hip", "dHip", "Knee", "dKnee", "Ankle", "dAnkle")
-evc3.plot = melt(evec3)
+SD = do.call(cbind, SD)
 
-evec4 = Re(eigvecs[,,4])
-colnames(evec4) =  c("Hip", "dHip", "Knee", "dKnee", "Ankle", "dAnkle")
-evc4.plot = melt(evec4)
+eigvecs = lapply(1:6, function(i){eigvecs[,,i]/SD})
+EVPLOT = lapply(eigvecs, function(X){
+  
+  colnames(X) = c("Hip", "dHip", "Knee", "dKnee", "Ankle", "dAnkle")
+  melt(X)
+  
+  
+})
 
-evec5 = Re(eigvecs[,,5])
-colnames(evec5) =  c("Hip", "dHip", "Knee", "dKnee", "Ankle", "dAnkle")
-evc5.plot = melt(evec5)
+EVPLOT = do.call(rbind, EVPLOT)
 
-evec6 = Re(eigvecs[,,6])
-colnames(evec6) =  c("Hip", "dHip", "Knee", "dKnee", "Ankle", "dAnkle")
-evc6.plot = melt(evec6)
-
-
-EVPLOT = data.frame(rbind(evc1.plot, evc2.plot, evc3.plot, evc4.plot, evc5.plot, evc6.plot))
 EVPLOT$Eigenvector = as.factor(c(rep(1:6, each = 606)))
 
 
@@ -507,9 +606,9 @@ my_palette <- c(
   "#E69F00")  # Orange
 
 
-TVCS = ggplot(EVPLOT, aes(x = X1, y = abs(value), colour = X2))+
+TVCS = ggplot(EVPLOT, aes(x = X1/100, y = abs(value), colour = X2))+
   geom_line()+
-  labs(x = "% Gait Cycle", y = "Eigen Vector Value \n (Real Part)", colour = "Variable")+
+  labs(x = "Proportion of Gait Cycle", y = "Eigenvector", colour = "Variable")+
   theme_light()+
   facet_wrap(~Eigenvector, ncol = 6)+
   scale_colour_manual(values = my_palette)+
@@ -533,8 +632,13 @@ layout = "AAA
           CCC"
 
 EIGVALVEC = wrap_plots(TVES, TVCS, guide_area())+ plot_layout(design = layout)
-EIGVALVEC
-#ggsave("FLDHM Figure 4 - Gait Eigens.jpg", EIGVALVEC, dpi = 300, height = 16, width = 20, units = 'cm')
+
+ggsave("FLDHM Figure 4 Gait Eigens.jpg", EIGVALVEC, dpi = 300, height = 16, width = 24, units = 'cm')
+
+
+
+
+
 
 
 
