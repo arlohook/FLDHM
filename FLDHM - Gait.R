@@ -346,7 +346,7 @@ var.conv = function(vn){
 
 hip.plot = lapply(hip.co[2:length(hip.co)], function(X){
   
-  data.frame("Var" = var.conv(colnames(X)[2]), "t" = X$tfine.vec, "Value" = X$value)
+  data.frame("Var" = var.conv(colnames(X)[2]), "t" = X$tfine.vec, "Value" = X$value, "UCI" = X$value+1.96*X$se, "LCI" = X$value-1.96*X$se)
   
 })
 hip.plot = do.call(rbind, hip.plot)
@@ -354,7 +354,7 @@ hip.plot$Var = factor(hip.plot$Var, levels = c("Hip", "Knee", "dHip", "dKnee"), 
 
 knee.plot = lapply(knee.co[2:length(knee.co)], function(X){
   
-  data.frame("Var" = var.conv(colnames(X)[2]), "t" = X$tfine.vec, "Value" = X$value)
+  data.frame("Var" = var.conv(colnames(X)[2]), "t" = X$tfine.vec, "Value" = X$value, "UCI" = X$value+1.96*X$se, "LCI" = X$value-1.96*X$se)
   
 })
 knee.plot = do.call(rbind, knee.plot)
@@ -363,7 +363,7 @@ knee.plot$Var = factor(knee.plot$Var, levels = c("Hip",  "Knee",  "Ankle", "dHip
 
 ankle.plot = lapply(ankle.co[2:length(ankle.co)], function(X){
   
-  data.frame("Var" = var.conv(colnames(X)[2]), "t" = X$tfine.vec, "Value" = X$value)
+  data.frame("Var" = var.conv(colnames(X)[2]), "t" = X$tfine.vec, "Value" = X$value, "UCI" = X$value+1.96*X$se, "LCI" = X$value-1.96*X$se)
   
 })
 ankle.plot = do.call(rbind, ankle.plot)
@@ -377,37 +377,42 @@ my_palette1 <- c(
   "Ankle" = "#CC79A7", # Reddish purple
   "dAnkle" = "#E69F00")
 
-Hp = ggplot(hip.plot, aes(x = t, y = Value, colour = Var))+
+Hp = ggplot(hip.plot, aes(x = t, y = Value, colour = Var, ymin = LCI, ymax = UCI, fill = Var))+
   geom_hline(yintercept = 0, lty = 2, colour = "grey", alpha = 0.5,)+
+  geom_ribbon(alpha = 0.4)+
   geom_line()+
   theme_classic()+
   facet_wrap(~Var, scales = 'free')+
   labs(x = "Proportion of Gait Cycle", title = "Multi-Joint Coefficients: Hip", colour = "Variable")+
   theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 10), legend.position = 'none')+
   scale_colour_manual(values = my_palette1)+
+  scale_fill_manual(values = my_palette1)+
   scale_x_continuous(breaks = c(0,1))
   
 
-Kp = ggplot(knee.plot, aes(x = t, y = Value, colour = Var))+
-  geom_hline(yintercept = 0, lty = 2, colour = "grey", alpha = 0.5)+
+Kp = ggplot(knee.plot, aes(x = t, y = Value, colour = Var, ymin = LCI, ymax = UCI, fill = Var))+
+  geom_hline(yintercept = 0, lty = 2, colour = "grey", alpha = 0.5,)+
+  geom_ribbon(alpha = 0.4)+
   geom_line()+
   theme_classic()+
   facet_wrap(~Var, scales = 'free')+
   labs(x = "Proportion of Gait Cycle", title = "Multi-Joint Coefficients: Knee", colour = "Variable")+
   theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 10), legend.position = 'none')+
   scale_colour_manual(values = my_palette1)+
+  scale_fill_manual(values = my_palette1)+
   scale_x_continuous(breaks = c(0,1))
 
-Ap = ggplot(ankle.plot, aes(x = t, y = Value, colour = Var))+
-  geom_hline(yintercept = 0, lty = 2, colour = "grey", alpha = 0.5)+
+Ap = ggplot(ankle.plot, aes(x = t, y = Value, colour = Var, ymin = LCI, ymax = UCI, fill = Var))+
+  geom_hline(yintercept = 0, lty = 2, colour = "grey", alpha = 0.5,)+
+  geom_ribbon(alpha = 0.4)+
   geom_line()+
   theme_classic()+
   facet_wrap(~Var, scales = 'free')+
   labs(x = "Proportion of Gait Cycle", title = "Multi-Joint Coefficients: Ankle", colour = "Variable")+
   theme(plot.title = element_text(hjust = 0.5, face = "bold", size = 10), legend.position = 'none')+
   scale_colour_manual(values = my_palette1)+
+  scale_fill_manual(values = my_palette1)+
   scale_x_continuous(breaks = c(0,1))
-
 
 MJCO = Hp + Kp + Ap + plot_layout(design = c("AABBBCC"))
 MJCO
